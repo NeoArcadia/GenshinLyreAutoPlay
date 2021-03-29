@@ -49,7 +49,7 @@ namespace GenshinLyreAutoPlay
             //FindWindow 参数一是进程名 参数2是 标题名
             textBox1.Text = "";
             listBox1.Items.Clear();
-            int shift = Decimal.ToInt32(numericUpDown1.Value);
+            int shift = 0;
             IntPtr calculatorHandle = WinApiUtils.FindWindow(null, "原神");
             //判断是否找到
             if (calculatorHandle == IntPtr.Zero)
@@ -59,6 +59,9 @@ namespace GenshinLyreAutoPlay
             }
             //var access = MidiAccessManager.Default;
             var music = MidiMusic.Read(System.IO.File.OpenRead("./" + comboBox1.SelectedItem));
+            shift = TuneUtils.getBestShift(music);
+            textBox1.Text += "best shift =" + shift;
+            textBox1.Text += "\r\n";
             SimpleAdjustingMidiPlayerTimeManager simpleAdjustingMidiPlayerTimeManager = new SimpleAdjustingMidiPlayerTimeManager();
             player = new MidiPlayer(music, simpleAdjustingMidiPlayerTimeManager);
             int val = 0;
@@ -130,15 +133,20 @@ namespace GenshinLyreAutoPlay
                         key = val.ToString();
                         if (mapping.ContainsKey(key))
                         {
-                            //SendKeys.Send(mapping[key]);
-                            WinApiUtils.keybd_event((byte)letter[mapping[key]], 0, 0, 0);
-                            //WinApiUtils.PostMessage(calculatorHandle, WinApiUtils.WM_KEY_DOWN, (Keys)Enum.Parse(typeof(Keys), mapping[key].ToUpper()), letter[mapping[key]]);
-                            textBox1.Text += "(" + mapping[key];
-                            textBox1.Text += ";";
-                            if (checkBox1.Checked) {
+                            
+                            int c = me.Lsb;
+                            if (c == 0)
+                            {
                                 WinApiUtils.keybd_event((byte)letter[mapping[key]], 0, 2, 0);
                                 textBox1.Text += ")";
                                 textBox1.Text += " ";
+                            }
+                            else {
+                                //SendKeys.Send(mapping[key]);
+                                WinApiUtils.keybd_event((byte)letter[mapping[key]], 0, 0, 0);
+                                //WinApiUtils.PostMessage(calculatorHandle, WinApiUtils.WM_KEY_DOWN, (Keys)Enum.Parse(typeof(Keys), mapping[key].ToUpper()), letter[mapping[key]]);
+                                textBox1.Text += "(" + mapping[key];
+                                textBox1.Text += ";";
                             }
                         }
                         else {
@@ -148,8 +156,6 @@ namespace GenshinLyreAutoPlay
                         break;
                     case MidiEvent.NoteOff:
                         listBox1.Items.Add("MidiEvent.NoteOff");
-                        if (checkBox1.Checked)
-                            return;
                         val = me.Msb + shift;
                         key = val.ToString();
                         if (mapping.ContainsKey(key))
