@@ -19,7 +19,7 @@ namespace GenshinLyreAutoPlay
         public static int getBestShift(MidiMusic midiMusic) {
             int shift = 0;
             int oldHit = 0;
-            for (int i = -6; i < 7; i++) {
+            for (int i = -21; i < 22; i++) {
                 int hit = 0;
                 foreach (MidiTrack track in midiMusic.Tracks) {
                     foreach (MidiMessage mm in track.Messages) {
