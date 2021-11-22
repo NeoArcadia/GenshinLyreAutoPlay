@@ -41,6 +41,19 @@ namespace GenshinLyreAutoPlay
             {
                 comboBox1.Items.Add(fn);
             }
+
+            comboBox1.SelectedIndexChanged += (o, args) =>
+            {
+                button1.Enabled = true;
+                button2.Enabled = true;
+            };
+            button1.Enabled = false;
+            button2.Enabled = false;
+
+            var midiInput = new MidiInput();
+            midiInput.Start(cb_selectMidiDev);
+            midiInput.midiInputEvent += sendKeyWithoutShift;
+
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -51,6 +64,7 @@ namespace GenshinLyreAutoPlay
             listBox1.Items.Clear();
             int shift = 0;
             IntPtr calculatorHandle = WinApiUtils.FindWindow(null, "原神");
+//            IntPtr calculatorHandle = WinApiUtils.FindWindow(null, "untitled.txt - 记事本");
             //判断是否找到
             if (calculatorHandle == IntPtr.Zero)
             {
@@ -64,118 +78,133 @@ namespace GenshinLyreAutoPlay
             textBox1.Text += "\r\n";
             SimpleAdjustingMidiPlayerTimeManager simpleAdjustingMidiPlayerTimeManager = new SimpleAdjustingMidiPlayerTimeManager();
             player = new MidiPlayer(music, simpleAdjustingMidiPlayerTimeManager);
-            int val = 0;
-            string key;
+
             WinApiUtils.SetForegroundWindow(calculatorHandle);
             player.EventReceived += (MidiEvent me) =>
             {
-                switch (me.EventType)
-                {
-                    case MidiEvent.Meta:
-                    //case MidiEvent.Reset:
-                        listBox1.Items.Add("MidiEvent.Meta");
-                        break;
-                    case MidiEvent.ActiveSense:
-                        listBox1.Items.Add("MidiEvent.ActiveSense");
-                        break;
-                    case MidiEvent.MidiStop:
-                        listBox1.Items.Add("MidiEvent.MidiStop");
-                        break;
-                    case MidiEvent.MidiContinue:
-                        listBox1.Items.Add("MidiEvent.MidiContinue");
-                        break;
-                    case MidiEvent.MidiStart:
-                        listBox1.Items.Add("MidiEvent.MidiStart");
-                        break;
-                    case MidiEvent.MidiTick:
-                        listBox1.Items.Add("MidiEvent.MidiTick");
-                        break;
-                    case MidiEvent.MidiClock:
-                        listBox1.Items.Add("MidiEvent.MidiClock");
-                        break;
-                    case MidiEvent.EndSysEx:
-                    //case MidiEvent.SysEx2:
-                        listBox1.Items.Add("MidiEvent.EndSysEx");
-                        break;
-                    case MidiEvent.TuneRequest:
-                        listBox1.Items.Add("MidiEvent.TuneRequest");
-                        break;
-                    case MidiEvent.SongPositionPointer:
-                        listBox1.Items.Add("MidiEvent.SongPositionPointer");
-                        break;
-                    case MidiEvent.MtcQuarterFrame:
-                        listBox1.Items.Add("MidiEvent.MtcQuarterFrame");
-                        break;
-                    case MidiEvent.SysEx1:
-                        listBox1.Items.Add("MidiEvent.SysEx1");
-                        break;
-                    case MidiEvent.Pitch:
-                        listBox1.Items.Add("MidiEvent.Pitch");
-                        break;
-                    case MidiEvent.CAf:
-                        listBox1.Items.Add("MidiEvent.CAf");
-                        break;
-                    case MidiEvent.Program:
-                        listBox1.Items.Add("MidiEvent.Program");
-                        break;
-                    case MidiEvent.CC:
-                        listBox1.Items.Add("MidiEvent.CC");
-                        break;
-                    case MidiEvent.PAf:
-                        listBox1.Items.Add("MidiEvent.PAf");
-                        break;
-                    case MidiEvent.SongSelect:
-                        listBox1.Items.Add("MidiEvent.SongSelect");
-                        break;
-                    case MidiEvent.NoteOn:
-                        listBox1.Items.Add("MidiEvent.NoteOn");
-                        val = me.Msb + shift;
-                        key = val.ToString();
-                        if (mapping.ContainsKey(key))
-                        {
-                            
-                            int c = me.Lsb;
-                            if (c == 0)
-                            {
-                                WinApiUtils.keybd_event((byte)letter[mapping[key]], 0, 2, 0);
-                                textBox1.Text += ")";
-                                textBox1.Text += " ";
-                            }
-                            else {
-                                //SendKeys.Send(mapping[key]);
-                                WinApiUtils.keybd_event((byte)letter[mapping[key]], 0, 0, 0);
-                                //WinApiUtils.PostMessage(calculatorHandle, WinApiUtils.WM_KEY_DOWN, (Keys)Enum.Parse(typeof(Keys), mapping[key].ToUpper()), letter[mapping[key]]);
-                                textBox1.Text += "(" + mapping[key];
-                                textBox1.Text += ";";
-                            }
-                        }
-                        else {
-                            textBox1.Text += "[" + key + "]";
-                        }
+                byte meMsb = me.Msb;
+                byte meLsb = me.Lsb;
+                byte meEventType = me.EventType;
+                 sendKey(meEventType, meMsb, meLsb, shift);
+            };
+            player.Play();
+        }
 
-                        break;
-                    case MidiEvent.NoteOff:
-                        listBox1.Items.Add("MidiEvent.NoteOff");
-                        val = me.Msb + shift;
-                        key = val.ToString();
-                        if (mapping.ContainsKey(key))
+        private void sendKeyWithoutShift(int meEventType, int meMsb, int meLsb)
+        {
+            sendKey((byte) meEventType, (byte) meMsb, (byte) meLsb, 0);
+        }
+
+        private void sendKey(byte meEventType, byte meMsb, byte meLsb, int shift)
+        {
+            int val;
+            switch (meEventType)
+            {
+                case MidiEvent.Meta:
+                    //case MidiEvent.Reset:
+                    listBox1.Items.Add("MidiEvent.Meta");
+                    break;
+                case MidiEvent.ActiveSense:
+                    listBox1.Items.Add("MidiEvent.ActiveSense");
+                    break;
+                case MidiEvent.MidiStop:
+                    listBox1.Items.Add("MidiEvent.MidiStop");
+                    break;
+                case MidiEvent.MidiContinue:
+                    listBox1.Items.Add("MidiEvent.MidiContinue");
+                    break;
+                case MidiEvent.MidiStart:
+                    listBox1.Items.Add("MidiEvent.MidiStart");
+                    break;
+                case MidiEvent.MidiTick:
+                    listBox1.Items.Add("MidiEvent.MidiTick");
+                    break;
+                case MidiEvent.MidiClock:
+                    listBox1.Items.Add("MidiEvent.MidiClock");
+                    break;
+                case MidiEvent.EndSysEx:
+                    //case MidiEvent.SysEx2:
+                    listBox1.Items.Add("MidiEvent.EndSysEx");
+                    break;
+                case MidiEvent.TuneRequest:
+                    listBox1.Items.Add("MidiEvent.TuneRequest");
+                    break;
+                case MidiEvent.SongPositionPointer:
+                    listBox1.Items.Add("MidiEvent.SongPositionPointer");
+                    break;
+                case MidiEvent.MtcQuarterFrame:
+                    listBox1.Items.Add("MidiEvent.MtcQuarterFrame");
+                    break;
+                case MidiEvent.SysEx1:
+                    listBox1.Items.Add("MidiEvent.SysEx1");
+                    break;
+                case MidiEvent.Pitch:
+                    listBox1.Items.Add("MidiEvent.Pitch");
+                    break;
+                case MidiEvent.CAf:
+                    listBox1.Items.Add("MidiEvent.CAf");
+                    break;
+                case MidiEvent.Program:
+                    listBox1.Items.Add("MidiEvent.Program");
+                    break;
+                case MidiEvent.CC:
+                    listBox1.Items.Add("MidiEvent.CC");
+                    break;
+                case MidiEvent.PAf:
+                    listBox1.Items.Add("MidiEvent.PAf");
+                    break;
+                case MidiEvent.SongSelect:
+                    listBox1.Items.Add("MidiEvent.SongSelect");
+                    break;
+                case MidiEvent.NoteOn:
+                    listBox1.Items.Add("MidiEvent.NoteOn");
+                    val = meMsb + shift;
+                    string key;
+                    key = val.ToString();
+                    if (mapping.ContainsKey(key))
+                    {
+                        int c = meLsb;
+                        if (c == 0)
                         {
-                            //SendKeys.Send(mapping[key]);
-                            //WinApiUtils.PostMessage(calculatorHandle, WinApiUtils.WM_KEY_UP, (Keys)Enum.Parse(typeof(Keys), mapping[key].ToUpper()), letter[mapping[key]]);
-                            WinApiUtils.keybd_event((byte)letter[mapping[key]], 0, 2, 0);
+                            WinApiUtils.keybd_event((byte) letter[mapping[key]], 0, 2, 0);
                             textBox1.Text += ")";
                             textBox1.Text += " ";
                         }
-                        break;
-                    default:
-                        //textBox1.Text += me.EventType;
-                        //textBox1.Text += "\r\n";
-                        break;
+                        else
+                        {
+                            //SendKeys.Send(mapping[key]);
+                            WinApiUtils.keybd_event((byte) letter[mapping[key]], 0, 0, 0);
+                            //WinApiUtils.PostMessage(calculatorHandle, WinApiUtils.WM_KEY_DOWN, (Keys)Enum.Parse(typeof(Keys), mapping[key].ToUpper()), letter[mapping[key]]);
+                            textBox1.Text += "(" + mapping[key];
+                            textBox1.Text += ";";
+                        }
+                    }
+                    else
+                    {
+                        textBox1.Text += "[" + key + "]";
+                    }
 
-                }
+                    break;
+                case MidiEvent.NoteOff:
+                    listBox1.Items.Add("MidiEvent.NoteOff");
+                    val = meMsb + shift;
+                    key = val.ToString();
+                    if (mapping.ContainsKey(key))
+                    {
+                        //SendKeys.Send(mapping[key]);
+                        //WinApiUtils.PostMessage(calculatorHandle, WinApiUtils.WM_KEY_UP, (Keys)Enum.Parse(typeof(Keys), mapping[key].ToUpper()), letter[mapping[key]]);
+                        WinApiUtils.keybd_event((byte) letter[mapping[key]], 0, 2, 0);
+                        textBox1.Text += ")";
+                        textBox1.Text += " ";
+                    }
 
-            };
-            player.Play();
+                    break;
+                default:
+                    //textBox1.Text += me.EventType;
+                    //textBox1.Text += "\r\n";
+                    break;
+            }
+
         }
 
         private void button2_Click(object sender, EventArgs e)
